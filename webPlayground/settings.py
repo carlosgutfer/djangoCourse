@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'aircraft',
+    'aircraft.apps.AircraftConfig',
     'ckeditor',
     'core',
     'pages.apps.PagesConfig',
@@ -144,3 +144,12 @@ else:
 #Media files (donde se van a guardar los ficheros multimedia)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+#Para los websockets
+INSTALLED_APPS += ['channels']
+ASGI_APPLICATION = 'webPlayground.asgi.application'
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer'
+    }
+}

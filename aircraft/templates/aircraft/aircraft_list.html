@@ -1,0 +1,81 @@
+{% extends 'core/base.html' %} {% load static %} {% load aircraft_extras %}
+{%block title %}Aircrafts{% endblock %} {% block content %}
+<main role="main">
+  <div class="container">
+    <div class="table-responsive">
+      {% if aircraft_list %}
+      <table class="table table-striped" id="aircraft-table">
+        <thead>
+          <tr>
+            {% for field, name in fields|zip_lists:field_names %}<!---->
+            {% sort_link field as sort_result %}
+            <!---->
+            {% with parts=sort_result|split:"|" %}
+            <th>
+              <a href="{{ parts.0 }}"> {{ name|capfirst }} {{ parts.1 }} </a>
+            </th>
+            {% endwith %} {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for aircraft in aircraft_list %}
+          <tr data-id="{{ aircraft.id }}">
+            {% for field in fields %}
+            <td>{{ aircraft|get_field:field }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p>No aircrafts yet.</p>
+      {% endif %} {% include 'core/paginator.html' %}
+    </div>
+  </div>
+
+  <script>
+    const socket = new WebSocket("ws://" + window.location.host + "/ws/aircrafts/");
+    const tableBody = document.querySelector("#aircraft-table tbody");
+
+    socket.onmessage = function (e) {
+      const data = JSON.parse(e.data);
+      const action = data.action;
+      const aircraft = data.aircraft;
+      const existingRow = document.querySelector(`tr[data-id='${aircraft.id}']`);
+
+      if (action === "created") {
+        if (existingRow) return; // No duplicar si ya está
+
+        const newRow = document.createElement("tr");
+        newRow.setAttribute("data-id", aircraft.id);
+
+        {% for field in fields %}
+        const td_{{ forloop.counter }} = document.createElement("td");
+        td_{{ forloop.counter }}.textContent = aircraft["{{ field }}"] || "";
+        newRow.appendChild(td_{{ forloop.counter }});
+        {% endfor %}
+
+        tableBody.appendChild(newRow);
+        newRow.classList.add("table-success");
+        setTimeout(() => newRow.classList.remove("table-success"), 2000);
+      }
+
+      else if (action === "updated") {
+        if (existingRow) {
+          {% for field in fields %}
+          existingRow.children[{{ forloop.counter0 }}].textContent = aircraft["{{ field }}"] || "";
+          {% endfor %}
+          existingRow.classList.add("table-warning");
+          setTimeout(() => existingRow.classList.remove("table-warning"), 2000);
+        }
+      }
+
+      else if (action === "deleted") {
+        if (existingRow) {
+          existingRow.remove();
+        }
+      }
+    };
+  </script>
+</main>
+{% endblock %}
